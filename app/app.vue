@@ -15,6 +15,7 @@ const selectedRepo = ref<GithubRepo | null>(null)
 const isContactOpen = ref(false)
 const isMenuOpen = ref(false)
 const menuTouchStartX = ref(0)
+const scrollProgress = ref(0)
 const isDark = ref(false)
 const language = ref<'id' | 'en'>('id')
 const isThemeAnimating = ref(false)
@@ -84,11 +85,21 @@ function openContactFromMenu() {
   closeMenu()
   isContactOpen.value = true
 }
+function updateScrollProgress() {
+  const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight
+  scrollProgress.value = scrollableHeight > 0 ? Math.min(100, Math.round((window.scrollY / scrollableHeight) * 100)) : 0
+}
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 onMounted(() => {
   isDark.value = localStorage.getItem('aysernii-theme') === 'dark'
   language.value = localStorage.getItem('aysernii-language') === 'en' ? 'en' : 'id'
+  window.addEventListener('scroll', updateScrollProgress, { passive: true })
+  updateScrollProgress()
   loadGithubData()
 })
+onBeforeUnmount(() => window.removeEventListener('scroll', updateScrollProgress))
 </script>
 
 <template>
@@ -107,7 +118,8 @@ onMounted(() => {
       <section id="about" class="about-section section-wrap"><div class="about-heading reveal-up"><p class="eyebrow">{{ t.aboutLabel }}</p><h2 v-html="t.aboutTitle" /></div><div class="about-content reveal-up delay-one"><div class="profile-block"><img :src="profile?.avatar_url || '/images/resya2.jpg'" alt="AyserNii GitHub profile"><div><strong>{{ profile?.name || 'Resya Anggara' }}</strong><span>@{{ profile?.login || username }}</span></div></div><div class="about-copy"><p v-for="paragraph in t.aboutParagraphs" :key="paragraph">{{ paragraph }}</p></div><div class="stats"><div><strong>{{ profile ? formatNumber(profile.public_repos) : '—' }}</strong><span>{{ t.repositories }}</span></div><div><strong>{{ profile ? formatNumber(profile.followers) : '—' }}</strong><span>{{ t.followers }}</span></div></div><img class="about-photo" src="/images/resya2.jpg" alt="Resya outdoors"></div></section>
       <section id="hobbies" class="hobbies-section section-wrap"><div class="section-heading reveal-up"><div><p class="eyebrow">{{ t.beyond }}</p><h2 v-html="t.beyondTitle" /><p class="section-intro">{{ t.beyondIntro }}</p></div></div><div class="hobby-scatter"><article v-for="(hobby, index) in hobbies" :key="hobby.title" class="hobby-note reveal-up" :class="`delay-${Math.min(index + 1, 4)}`"><span class="hobby-number">0{{ index + 1 }}</span><div class="hobby-note-copy"><h3>{{ hobby.title }}</h3><p>{{ hobby.text }}</p></div><img :src="hobby.image" :alt="hobby.title"></article></div></section>
     </main>
-    <footer class="footer section-wrap"><span>{{ t.footer }}</span><div class="social-links"><a href="https://www.instagram.com/ayser_nii/" target="_blank" rel="noreferrer" aria-label="Instagram"><Icon icon="simple-icons:instagram" /> <span>Instagram</span></a><a href="https://github.com/AyserNii" target="_blank" rel="noreferrer" aria-label="GitHub"><Icon icon="simple-icons:github" /> <span>GitHub</span></a><a href="https://www.linkedin.com/in/resya-anggara/" target="_blank" rel="noreferrer" aria-label="LinkedIn"><Icon icon="simple-icons:linkedin" /> <span>LinkedIn</span></a></div><a href="#top">{{ t.backTop }} ↑</a></footer>
+    <footer class="footer section-wrap"><span>{{ t.footer }}</span><div class="social-links"><a href="https://www.instagram.com/ayser_nii/" target="_blank" rel="noreferrer" aria-label="Instagram"><Icon icon="simple-icons:instagram" /> <span>Instagram</span></a><a href="https://github.com/AyserNii" target="_blank" rel="noreferrer" aria-label="GitHub"><Icon icon="simple-icons:github" /> <span>GitHub</span></a><a href="https://www.linkedin.com/in/resya-anggara-912098394?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noreferrer" aria-label="LinkedIn"><Icon icon="simple-icons:linkedin" /> <span>LinkedIn</span></a></div></footer>
+    <button v-if="scrollProgress > 3" class="scroll-top-button" :aria-label="t.backTop" :title="`${scrollProgress}%`" @click="scrollToTop"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="scroll-track" cx="22" cy="22" r="19" /><circle class="scroll-progress" cx="22" cy="22" r="19" :style="{ strokeDashoffset: 119.4 - (119.4 * scrollProgress) / 100 }" /></svg><span>↑</span></button>
     <Transition name="modal"><div v-if="selectedRepo || isContactOpen" class="modal-backdrop" @click.self="selectedRepo = null; isContactOpen = false"><div class="repo-modal"><button class="close-button" :aria-label="t.close" @click="selectedRepo = null; isContactOpen = false">×</button><template v-if="selectedRepo"><span class="eyebrow">{{ t.repository }}</span><h2>{{ selectedRepo.name.replaceAll('-', ' ') }}</h2><p>{{ selectedRepo.description || t.modalFallback }}</p><div class="modal-meta"><span>{{ selectedRepo.language || 'Code' }}</span><span>★ {{ selectedRepo.stargazers_count }}</span><span>⑂ {{ selectedRepo.forks_count }}</span></div><a class="button button-dark" :href="selectedRepo.html_url" target="_blank" rel="noreferrer">{{ t.viewRepository }} <span>↗</span></a></template><template v-else><span class="eyebrow">{{ t.openConversation }}</span><h2>{{ t.letsTalk }}.</h2><p class="contact-intro">{{ t.contactIntro }}</p><div class="contact-options"><a href="mailto:resyaanggara98@gmail.com"><span class="contact-icon"><Mail :size="17" :stroke-width="1.8" /></span><span><strong>{{ t.email }}</strong><small>resyaanggara98@gmail.com</small></span><b>↗</b></a><a href="https://wa.me/6282114028613" target="_blank" rel="noreferrer"><span class="contact-icon"><Icon icon="simple-icons:whatsapp" /></span><span><strong>{{ t.whatsapp }}</strong><small>{{ t.chatWhatsapp }}</small></span><b>↗</b></a><a href="https://www.instagram.com/ayser_nii/" target="_blank" rel="noreferrer"><span class="contact-icon"><Icon icon="simple-icons:instagram" /></span><span><strong>{{ t.instagram }}</strong><small>@ayser_nii</small></span><b>↗</b></a></div></template></div></div></Transition>
   </div>
 </template>
@@ -130,7 +142,9 @@ onMounted(() => {
 .site-shell{min-height:100vh;background:var(--paper);color:var(--ink);transition:background-color .35s ease,color .35s ease}.site-shell.theme-dark{--ink:#eef1e8;--muted:#9da79d;--line:#39433d;--paper:#171c19;--lime:#d9ed5c;--white:#171c19}.site-shell.theme-dark .repo-card{background:rgba(255,255,255,.025)}.site-shell.theme-dark .skeleton{background:#28312b}.site-shell.theme-dark .skeleton:after{background:#39453c}.header-actions{display:flex;align-items:center;gap:24px}.theme-toggle{width:31px;height:31px;display:grid;place-items:center;padding:0;border:1px solid var(--line);border-radius:50%;background:transparent;cursor:pointer;font-size:16px;transition:transform .25s ease,background-color .25s ease}.theme-toggle:hover{transform:rotate(18deg) scale(1.08);background:var(--lime);color:#1e2320;border-color:var(--lime)}.theme-spread{position:fixed;z-index:20;inset:0;pointer-events:none;clip-path:circle(0% at 100% 0%);animation:theme-spread .65s cubic-bezier(.65,0,.2,1) forwards}.spread-dark{background:#171c19}.spread-light{background:#f5f6f1}@keyframes theme-spread{to{clip-path:circle(150% at 100% 0%)}}
 .footer{display:grid;grid-template-columns:1fr auto 1fr;align-items:center}.footer>a{justify-self:end}.social-links{width:auto;display:flex;align-items:center;justify-content:center;gap:20px;margin:0 auto}.social-links a{display:inline-flex;align-items:center;gap:6px}.social-links svg{width:15px;height:15px}.contact-icon svg{width:16px;height:16px}.contact-icon svg path{stroke:currentColor}.contact-icon svg:not([stroke]){fill:currentColor}
 .language-toggle{border:1px solid var(--line);padding:6px 8px;background:transparent;color:var(--muted);font:500 10px 'DM Mono',monospace;cursor:pointer;transition:color .2s ease,border-color .2s ease,background-color .2s ease}.language-toggle:hover{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.scroll-top-button{position:fixed;right:24px;bottom:24px;z-index:8;width:48px;height:48px;display:grid;place-items:center;border:0;border-radius:50%;background:var(--ink);color:var(--lime);cursor:pointer;box-shadow:0 8px 24px rgba(20,25,22,.18);animation:scroll-button-in .3s ease}.scroll-top-button svg{position:absolute;inset:-4px;width:56px;height:56px;transform:rotate(-90deg);overflow:visible}.scroll-track,.scroll-progress{fill:none;stroke-width:2}.scroll-track{stroke:var(--line)}.scroll-progress{stroke:var(--lime);stroke-linecap:round;stroke-dasharray:119.4;transition:stroke-dashoffset .15s linear}.scroll-top-button span{position:relative;z-index:1;display:grid;place-items:center;width:26px;height:26px;color:#d9ed5c;font-size:22px;font-weight:800;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.45)}.site-shell.theme-dark .scroll-top-button{background:#eef1e8;color:#171c19}.site-shell.theme-dark .scroll-top-button span{color:#171c19;text-shadow:none}.site-shell.theme-dark .scroll-track{stroke:#526057}@keyframes scroll-button-in{from{opacity:0;transform:translateY(8px) scale(.8)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:760px){.footer{display:flex;justify-content:space-between}.footer>a{margin-left:auto}.social-links{order:3;width:100%;margin:0;justify-content:center}}
+@media(max-width:760px){.footer{display:grid;grid-template-columns:1fr;justify-items:center;gap:18px;padding:28px 0 34px;text-align:center}.footer>span{font-size:9px}.social-links{order:0;width:100%;gap:18px}.social-links a{font-size:10px}.scroll-top-button{right:16px;bottom:16px;width:44px;height:44px}.scroll-top-button svg{width:52px;height:52px}}
 @media(max-width:760px){
   .section-wrap,.topbar{width:calc(100% - 32px)}
   .topbar{height:auto;min-height:74px;display:grid;grid-template-columns:1fr auto;grid-template-areas:'brand actions' 'nav nav';gap:14px 12px;padding:15px 0 13px}
