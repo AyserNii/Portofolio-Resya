@@ -3,7 +3,8 @@ import { Mail } from '@lucide/vue'
 import { Icon } from '@iconify/vue'
 
 interface GithubProfile { name: string; login: string; bio: string | null; avatar_url: string; html_url: string; location: string | null; public_repos: number; followers: number }
-interface GithubRepo { id: number; name: string; description: string | null; html_url: string; language: string | null; stargazers_count: number; forks_count: number; updated_at: string; fork: boolean }
+interface GithubRepo { id: number; name: string; description: string | null; html_url: string; language: string | null; topics?: string[]; stargazers_count: number; forks_count: number; updated_at: string; fork: boolean }
+interface Technology { name: string; icon: string }
 
 const username = 'AyserNii'
 const profile = ref<GithubProfile | null>(null)
@@ -42,6 +43,18 @@ const hobbies = computed(() => language.value === 'id' ? [
 ])
 const filters = computed(() => ['All', ...new Set(repositories.value.map((repo) => repo.language).filter(Boolean) as string[])])
 const filteredRepositories = computed(() => activeFilter.value === 'All' ? repositories.value : repositories.value.filter((repo) => repo.language === activeFilter.value))
+const technologyIcons: Record<string, string> = {
+  javascript: 'logos:javascript', typescript: 'logos:typescript', vue: 'logos:vue', nuxt: 'logos:nuxt-icon',
+  react: 'logos:react', nextjs: 'logos:nextjs-icon', node: 'logos:nodejs-icon', nodejs: 'logos:nodejs-icon',
+  php: 'logos:php', laravel: 'logos:laravel', go: 'logos:go', golang: 'logos:go', python: 'logos:python',
+  mysql: 'logos:mysql', postgresql: 'logos:postgresql', tailwind: 'logos:tailwindcss-icon', tailwindcss: 'logos:tailwindcss-icon',
+}
+const technologies = computed<Technology[]>(() => {
+  const names = repositories.value.flatMap((repo) => [repo.language, ...(repo.topics || [])]).filter(Boolean) as string[]
+  return [...new Set(names.map((name) => name.toLowerCase()))]
+    .filter((name) => technologyIcons[name])
+    .map((name) => ({ name: name === 'nodejs' ? 'Node.js' : name.charAt(0).toUpperCase() + name.slice(1), icon: technologyIcons[name] }))
+})
 const formatNumber = (value: number) => new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value)
 const formatDate = (date: string) => new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric' }).format(new Date(date))
 
@@ -110,7 +123,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', updateScrollProgress)
     <Transition name="drawer"><div v-if="isMenuOpen" class="mobile-menu" @click.self="closeMenu"><nav class="mobile-menu-panel" @touchstart="handleMenuTouchStart" @touchend="handleMenuTouchEnd"><div class="mobile-menu-head"><span>Menu</span><button class="menu-close" :aria-label="t.close" @click="closeMenu">×</button></div><a href="#work" @click="closeMenu">{{ t.work }} <span>↘</span></a><a href="#about" @click="closeMenu">{{ t.about }} <span>↘</span></a><a href="#hobbies" @click="closeMenu">{{ t.hobbiesNav }} <span>↘</span></a><button class="mobile-menu-contact" @click="openContactFromMenu">{{ t.letsTalk }} <span>↗</span></button></nav></div></Transition>
     <main id="top">
       <section class="hero section-wrap"><div class="hero-copy reveal-up"><p class="eyebrow"><span class="status-dot" /> {{ t.available }}</p><h1 v-html="t.heroTitle" /><p class="hero-description">{{ t.heroDescription }}</p><div class="hero-actions"><a class="button button-dark" href="#work">{{ t.explore }} <span>↓</span></a><a class="text-link" href="https://github.com/AyserNii" target="_blank" rel="noreferrer">{{ t.profile }} <span>↗</span></a></div></div><div class="hero-portrait reveal-up delay-one"><img :src="'/images/resya3.jpg'" alt="Resya wearing a formal suit"><span>Resya Anggara<br><strong>{{ t.role }}</strong></span></div><div class="hero-note reveal-up delay-one"><span class="note-line" /><p>{{ t.basedIn }}<br><strong>{{ profile?.location || t.internet }}</strong></p></div><div class="scroll-cue">{{ t.scroll }} <span>↓</span></div></section>
-      <section id="work" class="work-section section-wrap"><div class="section-heading reveal-up"><div><p class="eyebrow">{{ t.selectedWork }}</p><h2>{{ t.workTitle }}</h2></div><p class="section-intro">{{ t.workIntro }}</p></div>
+      <section id="work" class="work-section section-wrap"><div v-if="technologies.length" class="technology-marquee reveal-up" aria-label="Technologies used"><div class="technology-track"><div v-for="copyIndex in 4" :key="copyIndex" class="technology-group" :aria-hidden="copyIndex > 1"><span v-for="technology in technologies" :key="`${copyIndex}-${technology.name}`" class="technology-item" :title="copyIndex === 1 ? technology.name : undefined"><Icon :icon="technology.icon" /><span>{{ technology.name }}</span></span></div></div></div><div class="section-heading reveal-up"><div><p class="eyebrow">{{ t.selectedWork }}</p><h2>{{ t.workTitle }}</h2></div><p class="section-intro">{{ t.workIntro }}</p></div>
         <div v-if="isLoading" class="repo-grid loading-grid"><div v-for="index in 6" :key="index" class="repo-card skeleton-card"><div class="skeleton skeleton-tag" /><div class="skeleton skeleton-title" /><div class="skeleton skeleton-copy" /><div class="skeleton skeleton-foot" /></div></div>
         <div v-else-if="hasError" class="empty-state"><strong>{{ t.githubPause }}</strong><button class="text-link" @click="loadGithubData">{{ t.tryAgain }} ↗</button></div>
         <template v-else><div class="filter-row"><button v-for="filter in filters" :key="filter" class="filter-button" :class="{ active: activeFilter === filter }" @click="activeFilter = filter">{{ filter }}</button></div><div class="repo-grid"><article v-for="(repo, index) in filteredRepositories" :key="repo.id" class="repo-card reveal-up" :class="`delay-${Math.min(index + 1, 4)}`" @click="selectedRepo = repo"><div class="card-top"><span class="repo-index">0{{ index + 1 }}</span><span class="arrow-icon">↗</span></div><h3>{{ repo.name.replaceAll('-', ' ') }}</h3><p>{{ repo.description || t.repoFallback }}</p><div class="card-footer"><span class="language"><i :style="{ backgroundColor: repo.language === 'TypeScript' ? '#3178c6' : repo.language === 'JavaScript' ? '#e8c12f' : '#62a67a' }" />{{ repo.language || 'Code' }}</span><span>{{ formatDate(repo.updated_at) }}</span></div></article></div><p v-if="filteredRepositories.length === 0" class="empty-state">{{ t.noRepos }}</p></template>
@@ -164,4 +177,5 @@ onBeforeUnmount(() => window.removeEventListener('scroll', updateScrollProgress)
   .hero{min-height:0;display:flex;flex-direction:column;align-items:flex-start;padding:74px 0 100px}.hero-portrait{position:relative;right:auto;top:auto;align-self:flex-end;width:150px;margin-top:45px}.hero-note{position:static;margin-top:36px}.scroll-cue{left:auto;right:0}.repo-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.repo-card{min-height:220px;padding:15px}.repo-card h3{font-size:16px;line-height:1.05;overflow-wrap:anywhere}.repo-card p{font-size:10px;line-height:1.5;min-height:54px}.card-footer{font-size:8px;gap:5px}.language{min-width:0}.language i{flex:0 0 auto}.card-footer>span:last-child{white-space:nowrap}.repo-index{font-size:9px}.arrow-icon{font-size:16px}
 }
 .mobile-menu-panel>a,.mobile-menu-contact{font-size:clamp(1.25rem,5.5vw,1.75rem);padding-top:16px;padding-bottom:16px}.mobile-menu-panel>a span,.mobile-menu-contact span{font-size:16px}
+.technology-marquee{position:relative;width:100%;margin:-13px 0 38px;overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}.technology-track{display:flex;width:max-content;align-items:center;padding:12px 0;animation:technology-drift 12s linear infinite}.technology-group{display:flex;align-items:center;gap:12px;padding-right:12px}.technology-item{display:inline-flex;align-items:center;gap:8px;min-width:max-content;padding:7px 11px;border:1px solid var(--line);background:rgba(255,255,255,.18);color:var(--muted);font:10px 'DM Mono',monospace;text-transform:uppercase}.technology-item svg{width:18px;height:18px}.site-shell.theme-dark .technology-item{background:rgba(255,255,255,.025)}@keyframes technology-drift{from{transform:translateX(0)}to{transform:translateX(-50%)}}@media(max-width:760px){.technology-marquee{margin:-4px 0 30px}.technology-track{padding:10px 0;animation-duration:8s}.technology-group{gap:8px;padding-right:8px}.technology-item{padding:6px 9px;font-size:9px}.technology-item svg{width:16px;height:16px}}@media(prefers-reduced-motion:reduce){.technology-track{animation:none;transform:none}}
 </style>
